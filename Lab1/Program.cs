@@ -11,18 +11,24 @@ namespace Lab1
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
-            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+            // Bind secrets from secrets.json
+            var appSecrets = new AppSecrets();
+            builder.Configuration.GetSection("Secrets").Bind(appSecrets);
+
+            // Add services to the container with the secret connection string
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(connectionString));
+                options.UseSqlServer(appSecrets.DefaultConnection));
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
             builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
-                .AddRoles<IdentityRole>() // Enable roles
+                .AddRoles<IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>();
             builder.Services.AddControllersWithViews();
 
             var app = builder.Build();
+
+            // Store secrets in DbInitializer if needed
+            //DbInitializer.appSecrets = appSecrets;
 
             // Seed roles and users
             using (var scope = app.Services.CreateScope())
@@ -31,8 +37,7 @@ namespace Lab1
                 var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
                 var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
 
-                // Call the async seeding method
-                SeedRolesAndUsersAsync(userManager, roleManager).Wait();
+                SeedRolesAndUsersAsync(userManager, roleManager, appSecrets).Wait();
             }
 
             // Configure the HTTP request pipeline.
@@ -43,7 +48,6 @@ namespace Lab1
             else
             {
                 app.UseExceptionHandler("/Home/Error");
-                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
 
@@ -64,9 +68,8 @@ namespace Lab1
         }
 
         // Method to seed roles and users asynchronously
-        private static async Task SeedRolesAndUsersAsync(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
+        private static async Task SeedRolesAndUsersAsync(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, AppSecrets secrets)
         {
-            // Define roles
             var roles = new[] { "Manager", "Employee" };
             foreach (var role in roles)
             {
@@ -88,7 +91,7 @@ namespace Lab1
             };
             if (userManager.Users.All(u => u.UserName != managerUser.UserName))
             {
-                var result = await userManager.CreateAsync(managerUser, "Password1!");
+                var result = await userManager.CreateAsync(managerUser, secrets.ManagerPassword);
                 if (result.Succeeded)
                 {
                     await userManager.AddToRoleAsync(managerUser, "Manager");
@@ -107,7 +110,7 @@ namespace Lab1
             };
             if (userManager.Users.All(u => u.UserName != employeeUser.UserName))
             {
-                var result = await userManager.CreateAsync(employeeUser, "Password1!");
+                var result = await userManager.CreateAsync(employeeUser, secrets.EmployeePassword);
                 if (result.Succeeded)
                 {
                     await userManager.AddToRoleAsync(employeeUser, "Employee");
