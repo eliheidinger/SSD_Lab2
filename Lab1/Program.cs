@@ -27,24 +27,18 @@ namespace Lab1
             builder.Services.AddControllersWithViews();
 
             var kvUri = new Uri(builder.Configuration.GetSection("KVURI").Value);
-
             var azCred = new DefaultAzureCredential();
 
             try
             {
                 builder.Configuration.AddAzureKeyVault(kvUri, azCred);
-
                 ManagerPassword = builder.Configuration["ManagerPassword"];
                 EmployeePassword = builder.Configuration["EmployeePassword"];
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error retrieving secrets from Key Vault: {ex.Message}");
-                // Handle error appropriately, maybe exit or use local fallback
             }
-
-            ManagerPassword = builder.Configuration.GetSection("ManagerPassword").Value;
-            EmployeePassword = builder.Configuration.GetSection("EmployeePassword").Value;
 
             //ManagerPassword = "ManagerPassword1!";
             //EmployeePassword = "EmployeePassword1!";
