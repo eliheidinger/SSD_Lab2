@@ -1,3 +1,6 @@
+using Azure;
+using Azure.Identity;
+using Azure.Security.KeyVault.Secrets;
 using Lab1.Data;
 using Lab1.Models;
 using Microsoft.AspNetCore.Identity;
@@ -7,17 +10,15 @@ namespace Lab1
 {
     public class Program
     {
+        public static string ManagerPassword;
+        public static string EmployeePassword;
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Bind secrets from secrets.json
-            var appSecrets = new AppSecrets();
-            builder.Configuration.GetSection("Secrets").Bind(appSecrets);
-
             // Add services to the container with the secret connection string
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(appSecrets.DefaultConnection));
+            options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))); 
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
             builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
@@ -25,10 +26,30 @@ namespace Lab1
                 .AddEntityFrameworkStores<ApplicationDbContext>();
             builder.Services.AddControllersWithViews();
 
-            var app = builder.Build();
+            var kvUri = new Uri(builder.Configuration.GetSection("KVURI").Value);
 
-            // Store secrets in DbInitializer if needed
-            //DbInitializer.appSecrets = appSecrets;
+            var azCred = new DefaultAzureCredential();
+
+            try
+            {
+                builder.Configuration.AddAzureKeyVault(kvUri, azCred);
+
+                ManagerPassword = builder.Configuration["ManagerPassword"];
+                EmployeePassword = builder.Configuration["EmployeePassword"];
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error retrieving secrets from Key Vault: {ex.Message}");
+                // Handle error appropriately, maybe exit or use local fallback
+            }
+
+            ManagerPassword = builder.Configuration.GetSection("ManagerPassword").Value;
+            EmployeePassword = builder.Configuration.GetSection("EmployeePassword").Value;
+
+            //ManagerPassword = "ManagerPassword1!";
+            //EmployeePassword = "EmployeePassword1!";
+
+            var app = builder.Build();
 
             // Seed roles and users
             using (var scope = app.Services.CreateScope())
@@ -37,7 +58,7 @@ namespace Lab1
                 var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
                 var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
 
-                SeedRolesAndUsersAsync(userManager, roleManager, appSecrets).Wait();
+                SeedRolesAndUsersAsync(userManager, roleManager).Wait();
             }
 
             // Configure the HTTP request pipeline.
@@ -68,8 +89,10 @@ namespace Lab1
         }
 
         // Method to seed roles and users asynchronously
-        private static async Task SeedRolesAndUsersAsync(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, AppSecrets secrets)
+        private static async Task SeedRolesAndUsersAsync(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
         {
+            
+
             var roles = new[] { "Manager", "Employee" };
             foreach (var role in roles)
             {
@@ -91,7 +114,7 @@ namespace Lab1
             };
             if (userManager.Users.All(u => u.UserName != managerUser.UserName))
             {
-                var result = await userManager.CreateAsync(managerUser, secrets.ManagerPassword);
+                var result = await userManager.CreateAsync(managerUser, ManagerPassword);
                 if (result.Succeeded)
                 {
                     await userManager.AddToRoleAsync(managerUser, "Manager");
@@ -110,7 +133,7 @@ namespace Lab1
             };
             if (userManager.Users.All(u => u.UserName != employeeUser.UserName))
             {
-                var result = await userManager.CreateAsync(employeeUser, secrets.EmployeePassword);
+                var result = await userManager.CreateAsync(employeeUser, EmployeePassword);
                 if (result.Succeeded)
                 {
                     await userManager.AddToRoleAsync(employeeUser, "Employee");
