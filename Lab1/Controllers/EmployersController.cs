@@ -26,7 +26,7 @@ namespace Lab1.Controllers
         }
 
         // GET: Employers
-        [Authorize(Roles = "Manager, Employee")] // Both Managers and Employees can view
+        [Authorize(Roles = "Admin,Member")] // Both Managers and Employees can view
         public async Task<IActionResult> Index()
         {
               return _context.Employers != null ? 
@@ -35,7 +35,7 @@ namespace Lab1.Controllers
         }
 
         // GET: Employers/Details/5
-        [Authorize(Roles = "Manager, Employee")]
+        [Authorize(Roles = "Admin,Member")]
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null || _context.Employers == null)
@@ -54,7 +54,7 @@ namespace Lab1.Controllers
         }
 
         // GET: Employers/Create
-        [Authorize(Roles = "Manager")]
+        [Authorize(Roles = "Admin")]
         public IActionResult Create()
         {
             return View();
@@ -65,7 +65,7 @@ namespace Lab1.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Manager")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create([Bind("Id,Name,PhoneNumber,Website,IncorporatedDate")] Employer employer)
         {
             if (ModelState.IsValid)
@@ -78,7 +78,7 @@ namespace Lab1.Controllers
         }
 
         // GET: Employers/Edit/5
-        [Authorize(Roles = "Manager")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null || _context.Employers == null)
@@ -99,7 +99,7 @@ namespace Lab1.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Manager")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Name,PhoneNumber,Website,IncorporatedDate")] Employer employer)
         {
             if (id != employer.Id)
@@ -131,7 +131,7 @@ namespace Lab1.Controllers
         }
 
         // GET: Employers/Delete/5
-        [Authorize(Roles = "Manager")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null || _context.Employers == null)
@@ -152,7 +152,7 @@ namespace Lab1.Controllers
         // POST: Employers/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Manager")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             if (_context.Employers == null)

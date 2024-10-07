@@ -1,11 +1,12 @@
-﻿using Lab1.Models;
+﻿using System.Security.Claims;
+using Lab1.Data;
+using Lab1.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
 
-namespace Lab1.Data
+namespace Lab1
 {
-    public class DbInitializer
+    public static class DbInitializer
     {
         public static AppSecrets AppSecrets { get; set; }
 

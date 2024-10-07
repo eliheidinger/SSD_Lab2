@@ -50,6 +50,10 @@ namespace Lab1
             using (var scope = app.Services.CreateScope())
             {
                 var services = scope.ServiceProvider;
+                var context = services.GetRequiredService<ApplicationDbContext>();
+
+                // Apply any pending migrations to the database
+                context.Database.Migrate();
 
                 // Pass secrets to DbInitializer
                 DbInitializer.SeedUsersAndRoles(services, secrets).Wait();
